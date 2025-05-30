@@ -3,12 +3,14 @@
 // See the LICENSE.md file in the project root for more information.
 
 using System;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 using Markdig.Syntax;
-using Markdig.Wpf;
+using Markdig.Wpf; // This using is necessary for Styles and Commands
 
 namespace Markdig.Renderers.Wpf
 {
@@ -17,46 +19,48 @@ namespace Markdig.Renderers.Wpf
         protected override void Write(WpfRenderer renderer, CodeBlock obj)
         {
             if (renderer == null) throw new ArgumentNullException(nameof(renderer));
+            if (obj == null) throw new ArgumentNullException(nameof(obj));
 
-            var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            
-            var paragraph = new Paragraph();
-            paragraph.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeBlockStyleKey);
-            
-            // Extract code content
-            var code = string.Empty;
-            if (obj is FencedCodeBlock fencedCodeBlock)
+            var button = new Button();
+            button.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeBlockStyleKey);
+
+            // Extract code for CommandParameter
+            var codeTextBuilder = new StringBuilder();
+            if (obj is FencedCodeBlock fencedCodeBlock) // Prefer FencedCodeBlock for structured lines
             {
                 var lines = fencedCodeBlock.Lines;
-                var plainText = new string[lines.Count];
                 for (var i = 0; i < lines.Count; i++)
                 {
-                    plainText[i] = lines.Lines[i].Slice.ToString();
+                    codeTextBuilder.AppendLine(lines.Lines[i].Slice.ToString());
                 }
-                code = string.Join(Environment.NewLine, plainText);
             }
-
-            var button = new Button
+            else // Fallback for generic CodeBlock if necessary, though FencedCodeBlock is common
             {
-                Content = "Execute",
-                Command = Commands.CodeExecution,
-                CommandParameter = code
-            };
+                // Assuming obj.Lines gives access to the raw lines if not a FencedCodeBlock
+                // This part might need adjustment based on actual CodeBlock structure if not FencedCodeBlock
+                foreach (var line in obj.Lines.Lines)
+                {
+                     codeTextBuilder.AppendLine(line.Slice.ToString());
+                }
+            }
+            // Remove the last newline character if any
+            string codeText = codeTextBuilder.ToString().TrimEnd(Environment.NewLine.ToCharArray());
+            button.CommandParameter = codeText;
+            button.Command = Commands.CodeExecution;
 
-            Grid.SetRow(button, 0);
-            Grid.SetRow(paragraph, 1);
+            // Create TextBlock for Button.Content
+            var textBlock = new TextBlock();
+            // Use the already built codeText for the TextBlock content
+            textBlock.Text = codeText;
+            textBlock.FontFamily = new FontFamily("Consolas"); // Ensure monospaced font for code
+            // Apply some basic padding or margin if needed, though style might handle this
+            textBlock.Margin = new Thickness(2);
 
-            grid.Children.Add(button);
-            grid.Children.Add(paragraph);
-            
-            renderer.Push(grid);
-            var previousContainer = renderer.Container;
-            renderer.Container = paragraph;
-            renderer.WriteLeafRawLines(obj);
-            renderer.Container = previousContainer;
-            renderer.Pop(); // Pop the grid
+            button.Content = textBlock;
+
+            renderer.Push(button);
+            // No need to call renderer.WriteLeafRawLines(obj); as content is manually set.
+            renderer.Pop();
         }
     }
 }

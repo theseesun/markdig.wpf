@@ -25,5 +25,10 @@ namespace Markdig.Wpf
         /// Routed command for CodeExecution.
         /// </summary>
         public static RoutedCommand CodeExecution { get; } = new RoutedCommand(nameof(CodeExecution), typeof(Commands));
+
+        /// <summary>
+        /// Routed command for CopyCode.
+        /// </summary>
+        public static RoutedCommand CopyCode { get; } = new RoutedCommand(nameof(CopyCode), typeof(Commands));
     }
 }

@@ -5,10 +5,10 @@
 using System;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Controls; // Required for StackPanel
 using System.Windows.Data;
 using System.Windows.Documents;
-using System.Windows.Media; // Required for Brushes
+using System.Windows.Media;
 
 using Markdig.Syntax;
 using Markdig.Wpf;
@@ -22,48 +22,63 @@ namespace Markdig.Renderers.Wpf
             if (renderer == null) throw new ArgumentNullException(nameof(renderer));
 
             var grid = new Grid();
+            grid.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ffd3d3d3"));
 
-            var textBox = new TextBox // Changed from TextBlock
+            var textBox = new TextBox
             {
                 Text = string.Join(Environment.NewLine, obj.Lines.Lines.Select(l => l.Slice.ToString())),
                 IsReadOnly = true,
                 BorderThickness = new Thickness(0),
                 Background = Brushes.Transparent,
-                FontFamily = new FontFamily("Consolas"), // Typical for code
-                FontSize = 12, // Typical for code
-                // To make it behave more like a TextBlock regarding focus and selection:
+                FontFamily = new FontFamily("Consolas, Lucida Sans Typewriter, Courier New"),
+                Foreground = Brushes.Black,
+                FontSize = 12,
                 IsTabStop = false,
-                // AcceptsReturn = true, // Not strictly necessary for display but good for multiline
-                // VerticalScrollBarVisibility = ScrollBarVisibility.Auto, // If content might exceed allocated space
-                // HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, // If content might exceed allocated space
-                TextWrapping = TextWrapping.NoWrap // Usually code is not wrapped, horizontal scroll is preferred
+                TextWrapping = TextWrapping.NoWrap,
+                AcceptsReturn = true,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
             };
-            // Apply specific code font style if available from theme/styles
-            textBox.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeStyleKey);
 
-
-            var button = new Button
+            var executeButton = new Button
             {
                 Content = "Execute",
                 Command = Commands.CodeExecution,
                 FontSize = 10,
                 Padding = new Thickness(2),
-                Margin = new Thickness(0,0,5,0),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                // Margin = new Thickness(0,0,5,0), // Margin can be on stackpanel or individual buttons
                 MinWidth = 0,
                 MinHeight = 0,
-                IsTabStop = false // Keep button from being a tab stop as well if not desired
+                IsTabStop = false
             };
 
+            var copyButton = new Button
+            {
+                Content = "Copy",
+                Command = Commands.CopyCode,
+                FontSize = 10,
+                Padding = new Thickness(2),
+                Margin = new Thickness(5,0,0,0), // Add some space between Execute and Copy
+                MinWidth = 0,
+                MinHeight = 0,
+                IsTabStop = false
+            };
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0,0,5,0) // Margin for the panel itself from the corner
+            };
+
+            buttonPanel.Children.Add(executeButton);
+            buttonPanel.Children.Add(copyButton);
+
             grid.Children.Add(textBox);
-            grid.Children.Add(button);
+            grid.Children.Add(buttonPanel); // Add the panel containing both buttons
 
             var blockUIContainer = new BlockUIContainer(grid);
-            // Styles.CodeBlockStyleKey is applied to the container.
-            // We might need a specific style for the TextBox itself if Styles.CodeStyleKey isn't sufficient
-            // or if Styles.CodeBlockStyleKey conflicts.
-            blockUIContainer.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeBlockStyleKey);
 
             renderer.Push(blockUIContainer);
             renderer.Pop();

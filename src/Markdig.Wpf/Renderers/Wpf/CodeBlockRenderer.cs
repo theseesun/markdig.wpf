@@ -6,9 +6,12 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents; // Required for BlockUIContainer
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Media; // Required for Brushes
+
 using Markdig.Syntax;
-using Markdig.Wpf; // Required for Commands
+using Markdig.Wpf;
 
 namespace Markdig.Renderers.Wpf
 {
@@ -18,30 +21,48 @@ namespace Markdig.Renderers.Wpf
         {
             if (renderer == null) throw new ArgumentNullException(nameof(renderer));
 
-            var stackPanel = new StackPanel();
-            // Apply style to StackPanel if needed, or let BlockUIContainer handle it.
-            // stackPanel.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeBlockStyleKey);
+            var grid = new Grid();
 
-            var textBlock = new TextBlock();
-            // Using string.Join to better represent multi-line code
-            textBlock.Text = string.Join(Environment.NewLine, obj.Lines.Lines.Select(l => l.Slice.ToString()));
+            var textBox = new TextBox // Changed from TextBlock
+            {
+                Text = string.Join(Environment.NewLine, obj.Lines.Lines.Select(l => l.Slice.ToString())),
+                IsReadOnly = true,
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent,
+                FontFamily = new FontFamily("Consolas"), // Typical for code
+                FontSize = 12, // Typical for code
+                // To make it behave more like a TextBlock regarding focus and selection:
+                IsTabStop = false,
+                // AcceptsReturn = true, // Not strictly necessary for display but good for multiline
+                // VerticalScrollBarVisibility = ScrollBarVisibility.Auto, // If content might exceed allocated space
+                // HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, // If content might exceed allocated space
+                TextWrapping = TextWrapping.NoWrap // Usually code is not wrapped, horizontal scroll is preferred
+            };
+            // Apply specific code font style if available from theme/styles
+            textBox.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeStyleKey);
 
 
             var button = new Button
             {
-                Content = "Execute" // Or any other appropriate text
+                Content = "Execute",
+                Command = Commands.CodeExecution,
+                FontSize = 10,
+                Padding = new Thickness(2),
+                Margin = new Thickness(0,0,5,0),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                MinWidth = 0,
+                MinHeight = 0,
+                IsTabStop = false // Keep button from being a tab stop as well if not desired
             };
-            button.SetBinding(Button.CommandProperty, new System.Windows.Data.Binding
-            {
-                Source = Commands.CodeExecution
-            });
-            // Consider adding CommandParameter if the code text needs to be passed to the command
-            // button.CommandParameter = textBlock.Text;
 
-            stackPanel.Children.Add(textBlock);
-            stackPanel.Children.Add(button);
+            grid.Children.Add(textBox);
+            grid.Children.Add(button);
 
-            var blockUIContainer = new BlockUIContainer(stackPanel);
+            var blockUIContainer = new BlockUIContainer(grid);
+            // Styles.CodeBlockStyleKey is applied to the container.
+            // We might need a specific style for the TextBox itself if Styles.CodeStyleKey isn't sufficient
+            // or if Styles.CodeBlockStyleKey conflicts.
             blockUIContainer.SetResourceReference(FrameworkContentElement.StyleProperty, Styles.CodeBlockStyleKey);
 
             renderer.Push(blockUIContainer);

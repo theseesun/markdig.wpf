@@ -51,14 +51,20 @@ namespace Markdig.Renderers.Wpf
             // Create TextBlock for Button.Content
             var textBlock = new TextBlock();
             // Use the already built codeText for the TextBlock content
-            textBlock.Text = codeText;
+            textBlock.Text = codeText; 
             textBlock.FontFamily = new FontFamily("Consolas"); // Ensure monospaced font for code
             // Apply some basic padding or margin if needed, though style might handle this
-            textBlock.Margin = new Thickness(2);
+            textBlock.Margin = new Thickness(2); 
+            // button.HorizontalContentAlignment = HorizontalAlignment.Stretch; // Optional: If TextBlock should fill button width
+            // button.VerticalContentAlignment = VerticalAlignment.Stretch;   // Optional: If TextBlock should fill button height
 
             button.Content = textBlock;
 
-            renderer.Push(button);
+            // Wrap the button in a BlockUIContainer
+            var container = new BlockUIContainer();
+            container.Child = button;
+
+            renderer.Push(container); // Push the container, not the button directly
             // No need to call renderer.WriteLeafRawLines(obj); as content is manually set.
             renderer.Pop();
         }
